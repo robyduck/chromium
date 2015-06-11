@@ -20,8 +20,6 @@ Source0:	https://commondatastorage.googleapis.com/chromium-browser-official/%{na
 
 Source10:	chromium-wrapper
 Source20:	chromium-browser.desktop
-Source30:	master_preferences
-Source31:	default_bookmarks.html
 Source32:	chromium.default
 
 Source997:	depot_tools.tar.xz
@@ -45,8 +43,6 @@ Patch15:	chromium-25.0.1364.172-sandbox-pie.patch
 # archlinux arm enhancement patches
 Patch100:       arm-webrtc-fix.patch
 Patch101:       chromium-arm-r0.patch
-
-Patch200:	chromium-widevine.patch
 
 BuildRequires:  SDL-devel
 BuildRequires:  alsa-lib-devel
@@ -144,18 +140,7 @@ BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  pkgconfig(speex)
 %endif
 
-%if ! %{defined rhel}
-%if 0%{?fedora} < 22
-BuildRequires:  faac-devel >= 1.28
-%endif
-BuildRequires:  lame-devel
-BuildRequires:  opencore-amr-devel
 BuildRequires:  wdiff
-BuildRequires:  x264-devel
-BuildRequires:  xvidcore-devel
-%endif
-
-BuildRequires:	chromium-widevinecdm-plugin
 
 %if 0%{?clang}
 BuildRequires:	clang
@@ -213,19 +198,6 @@ members of the Chromium and WebDriver teams.
 # archlinux arm enhancements
 %patch100 -p0
 %patch101 -p0
-
-%patch200 -p1
-
-# build with widevine support
-WIDEVINE_VERSION=$(rpm -q chromium-widevinecdm-plugin --qf %%{version})
-
-sed -i "s/@WIDEVINE_VERSION@/$WIDEVINE_VERSION/g" third_party/widevine/cdm/widevine_cdm_version.h
-
-WIDEVINE_SUPPORTED_ARCHS="x64 ia32"
-for arch in $WIDEVINE_SUPPORTED_ARCHS; do
-    mkdir -p third_party/widevine/cdm/linux/$arch
-    cp %{_libdir}/chromium/libwidevinecdm.so third_party/widevine/cdm/widevine_cdm_*.h third_party/widevine/cdm/linux/$arch/
-done
 
 # Hard code extra version
 FILE=chrome/common/chrome_version_info_posix.cc
@@ -405,8 +377,6 @@ done
 
 # Install the master_preferences file
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
-install -m 0644 %{SOURCE30} %{buildroot}%{_sysconfdir}/%{name}/
-install -m 0644 %{SOURCE31} %{buildroot}%{_sysconfdir}/%{name}/
 
 
 %post
