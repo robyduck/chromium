@@ -1,14 +1,14 @@
 %define chromium_system_libs 0
 
-%if 0%{?fedora} >= 21
-%define clang 1
-%else
+%if 0%{?fedora} >= 23
 %define clang 0
+%else
+%define clang 1
 %endif
 
 Summary:	A fast webkit-based web browser
 Name:		chromium
-Version:	43.0.2357.81
+Version:	45.0.2454.99
 Release:	1%{?dist}
 Epoch:		1
 
@@ -43,6 +43,9 @@ Patch15:	chromium-25.0.1364.172-sandbox-pie.patch
 # archlinux arm enhancement patches
 Patch100:       arm-webrtc-fix.patch
 Patch101:       chromium-arm-r0.patch
+
+#https://boringssl.googlesource.com/boringssl/+/241364c6f4d44165ce2dc707b9ad141dcc880d1b%5E%21/
+Patch120:	chromium-45.0.2454.85-Demand-for-newer-POSIX-macro.patch
 
 BuildRequires:  SDL-devel
 BuildRequires:  alsa-lib-devel
@@ -199,6 +202,15 @@ members of the Chromium and WebDriver teams.
 %patch100 -p0
 %patch101 -p0
 
+#https://boringssl.googlesource.com/boringssl/+/241364c6f4d44165ce2dc707b9ad141dcc880d1b%5E%21/
+%patch120 -p1
+
+### build with widevine support
+
+# Patch from crbug (chromium bugtracker)
+# fix the missing define (if not, fail build) (need upstream fix) (https://crbug.com/473866)
+sed '14i#define WIDEVINE_CDM_VERSION_STRING "Something fresh"' -i "third_party/widevine/cdm/stub/widevine_cdm_version.h"
+
 # Hard code extra version
 FILE=chrome/common/chrome_version_info_posix.cc
 sed -i.orig -e 's/getenv("CHROME_VERSION_EXTRA")/"Russian Fedora"/' $FILE
@@ -231,8 +243,11 @@ buildconfig+="-Dwerror=
 		-Ddisable_pnacl=1
 		-Ddisable_newlib_untar=0
 		-Duse_system_xdg_utils=1
-		-Duse_aura=1"
-
+		-Denable_hotwording=0
+		-Denable_widevine=1
+		-Duse_aura=1
+		-Denable_hidpi=1
+		-Denable_touch_ui=1"
 
 %if 0%{?clang}
 buildconfig+=" -Dclang=1
@@ -306,7 +321,7 @@ export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 # Modern Clang produces a *lot* of warnings 
 export CXXFLAGS="${CXXFLAGS} -Wno-unknown-warning-option -Wno-unused-local-typedef -Wunknown-attributes -Wno-tautological-undefined-compare"
-export GYP_DEFINES=clang=1
+export GYP_DEFINES="clang=1"
 %endif
 
 build/linux/unbundle/replace_gyp_files.py $buildconfig
@@ -316,11 +331,7 @@ export GYP_GENERATORS='ninja'
 
 mkdir -p out/Release
 
-ninja-build -C out/Release chrome
-# Build the required SUID_SANDBOX helper
-ninja-build -C out/Release chrome_sandbox
-# Build the ChromeDriver test suite
-ninja-build -C out/Release chromedriver
+ninja-build -C out/Release chrome chrome_sandbox chromedriver widevinecdmadapter clearkeycdm
 
 %install
 mkdir -p %{buildroot}%{_bindir}
@@ -336,7 +347,6 @@ install -m 644 out/Release/chrome.1 %{buildroot}%{_mandir}/man1/%{name}.1
 install -m 644 out/Release/*.pak %{buildroot}%{_libdir}/%{name}/
 install -m 644 out/Release/icudtl.dat %{buildroot}%{_libdir}/%{name}/
 cp -a out/Release/*_blob.bin %{buildroot}%{_libdir}/%{name}/
-install -m 755 out/Release/libffmpegsumo.so %{buildroot}%{_libdir}/%{name}/
 
 # chromium components
 mkdir -p %{buildroot}%{_libdir}/%{name}/lib/
@@ -404,7 +414,6 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 %{_libdir}/%{name}/chromium-wrapper
 %{_libdir}/%{name}/chrome
 %{_libdir}/%{name}/chrome-sandbox
-%{_libdir}/%{name}/libffmpegsumo.so
 %{_libdir}/%{name}/lib
 %{_libdir}/%{name}/locales
 %{_libdir}/%{name}/chrome_*_percent.pak
@@ -430,6 +439,49 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 
 %changelog
+* Thu Sep 24 2015 Arkady L. Shane <ashejn@russianfedora.pro> 45.0.2454.99-1.R
+- update to 45.0.2454.99
+- use gcc for Fedora 23 and later as chromium does bot build with new llvm
+
+* Sat Sep 19 2015 Arkady L. Shane <ashejn@russianfedora.pro> 45.0.2454.93-1.R
+- update to 45.0.2454.93
+
+* Wed Sep  2 2015 Arkady L. Shane <ashejn@russianfedora.pro> 45.0.2454.85-1.R
+- update to 45.0.2454.85
+
+* Wed Aug 12 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.155-1.R
+- update to 44.0.2403.155
+
+* Tue Aug 11 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.130-2.R
+- drop BR: chromium-widevinecdm-plugin
+- change homepage to http://start.fedoraproject.org
+- added -Denable_hidpi=1 and -Denable_touch_ui=1
+
+* Tue Aug 11 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.130-1.R
+- update to 44.0.2403.130
+
+* Wed Jul 29 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.125-1.R
+- update to 44.0.2403.125
+- drop nonfree widevinecdm require
+
+* Tue Jul 28 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.107-1.R
+- update to 44.0.2403.107
+
+* Wed Jul 22 2015 Arkady L. Shane <ashejn@russianfedora.pro> 44.0.2403.89-1.R
+- update to 44.0.2403.89
+
+* Wed Jul 15 2015 Arkady L. Shane <ashejn@russianfedora.pro> 43.0.2357.134-1.R
+- update to 43.0.2357.134
+
+* Sat Jul 11 2015 Arkady L. Shane <ashejn@russianfedora.pro> 43.0.2357.132-1.R
+- update to 43.0.2357.132
+
+* Fri Jul  3 2015 Arkady L. Shane <ashejn@russianfedora.pro> 43.0.2357.130-1.R
+- update to 43.0.2357.130
+
+* Sun Jun 14 2015 Arkady L. Shane <ashejn@russianfedora.pro> 43.0.2357.125-1.R
+- update to 43.0.2357.125
+
 * Mon May 25 2015 Arkady L. Shane <ashejn@russianfedora.pro> 43.0.2357.85-1.R
 - update to 43.0.2357.85
 
