@@ -1,0 +1,37 @@
+--- ../chromium.spec	2015-09-24 12:04:36.000000000 +0200
++++ chromium.spec	2015-09-25 09:26:05.165670849 +0200
+@@ -20,8 +20,6 @@
+ 
+ Source10:	chromium-wrapper
+ Source20:	chromium-browser.desktop
+-Source30:	master_preferences
+-Source31:	default_bookmarks.html
+ Source32:	chromium.default
+ 
+ Source997:	depot_tools.tar.xz
+@@ -145,16 +143,7 @@
+ BuildRequires:  pkgconfig(speex)
+ %endif
+ 
+-%if ! %{defined rhel}
+-%if 0%{?fedora} < 22
+-BuildRequires:  faac-devel >= 1.28
+-%endif
+-BuildRequires:  lame-devel
+-BuildRequires:  opencore-amr-devel
+ BuildRequires:  wdiff
+-BuildRequires:  x264-devel
+-BuildRequires:  xvidcore-devel
+-%endif
+ 
+ %if 0%{?clang}
+ BuildRequires:	clang
+@@ -398,8 +387,6 @@
+ 
+ # Install the master_preferences file
+ mkdir -p %{buildroot}%{_sysconfdir}/%{name}
+-install -m 0644 %{SOURCE30} %{buildroot}%{_sysconfdir}/%{name}/
+-install -m 0644 %{SOURCE31} %{buildroot}%{_sysconfdir}/%{name}/
+ 
+ 
+ %post
